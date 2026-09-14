@@ -2,31 +2,27 @@ vim.pack.add({
 	"https://github.com/stevearc/conform.nvim",
 })
 
-
-require('conform').setup({
-  formatters_by_ft = {
-    lua = { "stylua" },
-    python = { "isort", "black" },
-  },
-  format_on_save = {
-    timeout_ms = 500,
-    lsp_format = "fallback",
-  },
-
+require("conform").setup({
+	formatters_by_ft = {
+		lua = { "stylua" },
+		python = { "isort", "black" },
+	},
+	format_on_save = {
+		timeout_ms = 500,
+		lsp_format = "fallback",
+	},
 })
 
 vim.api.nvim_create_autocmd("BufWritePre", {
-  pattern = "*",
-callback = function(args)
-  require("conform").format({ bufnr = args.buf })
-end,
+	pattern = "*",
+	callback = function(args)
+		require("conform").format({ bufnr = args.buf })
+	end,
 })
-
-
 
 -- event = { "BufWritePre" },
 -- cmd = { "ConformInfo" },
-    
+
 -- keys = {
 -- {
 --   -- Customize or remove this keymap to your liking

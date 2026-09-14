@@ -6,6 +6,12 @@ vim.pack.add({
 	"https://github.com/saghen/blink.lib",
 	"https://github.com/saghen/blink.cmp",
 })
+
+-- bridges obsidian.nvim's nvim-cmp sources (registered in plugins/obsidian-nvim.lua)
+-- into blink.cmp
+vim.pack.add({
+	"https://github.com/saghen/blink.compat",
+})
 -- optional: provides snippets for the snippet source
 -- dependencies = { 'rafamadriz/friendly-snippets' },
 
@@ -48,10 +54,18 @@ cmp.setup({
 	},
 
 	-- (Default) Only show the documentation popup when manually triggered
-	completion = { documentation = { auto_show = false } },
+	completion = { documentation = { auto_show = true } },
 
 	sources = {
 		default = { "lsp", "path", "snippets", "buffer" },
+		per_filetype = {
+			markdown = { "lsp", "path", "buffer", "obsidian", "obsidian_new", "obsidian_tags" },
+		},
+		providers = {
+			obsidian = { name = "obsidian", module = "blink.compat.source" },
+			obsidian_new = { name = "obsidian_new", module = "blink.compat.source" },
+			obsidian_tags = { name = "obsidian_tags", module = "blink.compat.source" },
+		},
 	},
 
 	-- (Default) Rust fuzzy matcher for typo resistance and significantly better performance
