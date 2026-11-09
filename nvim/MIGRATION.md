@@ -174,3 +174,55 @@ Four new plugin files, all net-new capability (nothing replaced):
 **To revert any one:** remove its `load("plugins.x")` line from
 `lua/plugins/init.lua` and delete the file (these are pure additions, so
 there's no old file in `disabled/` to restore).
+
+## 10. Config audit fixes (2026-11-09)
+
+Full pre-change backup: `/tmp/claude-1000/-home-are--config-nvim/5d653237-b464-491b-8adf-5af0e9ffe06c/scratchpad/nvim-backup`
+(temporary location — copy it somewhere permanent if you want to keep it).
+
+| Change | Files |
+|---|---|
+| TypeScript server: `vtsls` (not installed) → `ts_ls`. Server list trimmed to what's installed; gopls/rust_analyzer/zls/helm_ls/tailwindcss/biome left commented with their `:MasonInstall` names; eslint stays on-demand via `vim.g.lsp_on_demands`. Added bashls, jinja_lsp. | `config/lsp.lua` |
+| mason-lspconfig: removed duplicate repo entry, fixed `automat_installation` typo, removed `stylua` from LSP list, `automatic_enable = false` (config/lsp.lua is the single source of truth — stops pylsp starting next to pyright). stylua/ruff/yamlfix installed via mason-registry. | `plugins/mason.lua` |
+| `<leader>ca` was defined buffer-locally in LspAttach, shadowing tiny-code-action. Removed the LSP one. | `config/lsp.lua` |
+| Inlay hints: dropped the global `enable(false)` in init.lua (it was overridden on every LspAttach anyway). Added `<leader>th` toggle. | `init.lua`, `config/lsp.lua` |
+| telescope: merged telescope-ui + fzf-native into one setup (two `setup()` calls were overwriting each other), fzf extension now loaded, `make` runs via `PackChanged` hook. | `plugins/telescope.lua` (removed `telescope-ui.lua`, `telescope-fzf-native.lua`) |
+| markdown-preview: binary installed; `PackChanged` hook re-installs on update. | `plugins/markdown-preview.lua` |
+| Python formatting: isort+black → `ruff_organize_imports` + `ruff_format`. | `plugins/conform.lua` |
+| Treesitter: 6 → 20 parsers (all LSP languages + html/tsx/js for autotag). | `plugins/treesitter.lua` |
+| obsidian.nvim: archived `epwalsh` → maintained `obsidian-nvim` fork (v3.16). Completion via its built-in LSP, so nvim-cmp and blink.compat removed. `<CR>`/`]o`/`[o` are fork defaults; `<leader>gf`/`<leader>ch` re-created on `ObsidianNoteEnter`. | `plugins/obsidian-nvim.lua`, `plugins/blink-cmp.lua` |
+| blink-ripgrep wired up as a real source (was installed but unconfigured). | `plugins/blink-cmp.lua` (removed `blink-rg.lua`) |
+| Removed duplicate autotag plugin `tronikelis/ts-autotag.nvim` (kept `windwp/nvim-ts-autotag`). | removed `ts-autotag.lua` |
+| Cruft: deleted `lazy-lock.json`, `config/lazy.lua`, commented lazy specs, noice's nvim-cmp override. | various |
+
+## 11. Baseline options, keymaps, autocmds (2026-11-09)
+
+- `config/options.lua`: undofile, confirm, ignorecase/smartcase, inccommand,
+  signcolumn, cursorline (needed by modicator), scrolloff, showmode off,
+  splitright/below, linebreak, listchars, winborder, mouse, updatetime,
+  timeoutlen=300, clipboard=unnamedplus, `vim.diagnostic.config` (inline
+  virtual text, severity sort). Dropped duplicate mapleader + termguicolors.
+- `config/keymaps.lua` (new): `<leader>d` / `<leader>q` diagnostics, visual
+  `J`/`K` move lines, `<`/`>` keep selection, wrapped-line `j`/`k`,
+  centered `<C-d>`/`<C-u>`, `<leader>p` paste-keep-register, `<Esc><Esc>`
+  leaves terminal, `<leader>fr`/`fs`/`fd` Telescope LSP pickers.
+- `config/autocmd.lua` (new, now required from `config/init.lua`): yank
+  highlight, restore cursor position, checktime on focus, equalize splits on
+  resize, `q` closes help/qf/etc., auto-mkdir on save, spell+wrap for
+  markdown/gitcommit/text.
+- `plugins/mini-starter.lua`: removed leftover *global* `j`→`<C-n>`,
+  `k`→`<C-p>` maps (they'd override the wrapped-line j/k). The buffer-local
+  starter j/k via `MiniStarterOpened` are unchanged.
+
+**To revert:** restore the three `config/*.lua` files from the backup noted
+in section 10, and remove `require("config.autocmd")` from `config/init.lua`.
+
+## 2026-11-09 mini.starter customised (`lua/plugins/mini-starter.lua`)
+
+Added ASCII header + time-of-day greeting, footer (cwd, nvim version, plugin
+count, date), sections for mini.sessions / recent files in cwd / actions
+(Telescope pickers, mini.files, LazyGit, config, `vim.pack.update()`), centred
+layout, numeric indexes and colorscheme-linked highlights. j/k navigation kept.
+
+**To revert:** reduce the `setup()` call back to just `query_updaters` and
+delete the header/footer/items/highlight code.

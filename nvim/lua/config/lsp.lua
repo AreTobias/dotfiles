@@ -4,7 +4,7 @@ local function augroup(name)
 end
 
 local default_keymaps = {
-	{ keys = "<leader>ca", func = vim.lsp.buf.code_action, desc = "Code Actions" },
+	-- <leader>ca (code actions) is provided by plugins/tiny-ca.lua
 	{ keys = "<leader>cr", func = vim.lsp.buf.rename, desc = "Code Rename" },
 	{ keys = "<leader>k", func = vim.lsp.buf.hover, desc = "Hover Documentation", has = "hoverProvider" },
 	{ keys = "K", func = vim.lsp.buf.hover, desc = "Hover (alt)", has = "hoverProvider" },
@@ -50,28 +50,34 @@ vim.api.nvim_create_autocmd("LspAttach", {
 	end,
 })
 
-local ts_server = vim.g.lsp_typescript_server or "vtsls"
-
--- Enable LSP servers for Neovim 0.11+
+-- Servers started on matching filetypes (configs come from nvim-lspconfig's
+-- lsp/*.lua, merged with any overrides in ~/.config/nvim/lsp/*.lua).
+-- Install them with :Mason (the core set is ensured in plugins/mason.lua).
 vim.lsp.enable({
-	ts_server,
-	"eslint",
+	"ts_ls",
 	"lua_ls",
-	"gopls",
-	"rust_analyzer",
-	"zls",
-	"cssls",
-	"html",
-	"helm_ls",
-	"biome",
+	"pyright",
+	"bashls",
 	"yamlls",
 	"jsonls",
-	"tailwindcss",
-	--- ... etc
+	"html",
+	"cssls",
+	"jinja_lsp",
+	-- Not installed yet; uncomment after `:MasonInstall <pkg>`:
+	-- "gopls",         -- :MasonInstall gopls
+	-- "rust_analyzer", -- :MasonInstall rust-analyzer
+	-- "zls",           -- :MasonInstall zls
+	-- "helm_ls",       -- :MasonInstall helm-ls
+	-- "tailwindcss",   -- :MasonInstall tailwindcss-language-server
+	-- "biome",         -- :MasonInstall biome
 })
 
--- Load Lsp on-demand, e.g: eslint is disable by default
--- e.g: We could enable eslint by set vim.g.lsp_on_demands = {"eslint"}
+-- Extra servers on demand, e.g. vim.g.lsp_on_demands = { "eslint" }
 if vim.g.lsp_on_demands then
 	vim.lsp.enable(vim.g.lsp_on_demands)
 end
+
+vim.keymap.set("n", "<leader>th", function()
+	local filter = { bufnr = 0 }
+	vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled(filter), filter)
+end, { desc = "Toggle inlay hints" })

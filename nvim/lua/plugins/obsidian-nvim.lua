@@ -1,17 +1,14 @@
+-- Maintained community fork of obsidian.nvim (the original epwalsh repo is
+-- archived). Completion for [[links]], #tags etc. comes from its built-in
+-- in-process LSP, so blink.cmp picks it up through its normal "lsp" source —
+-- no nvim-cmp / blink.compat shim needed.
 vim.pack.add({
-	{ src = "https://github.com/epwalsh/obsidian.nvim", version = "*" },
-})
-
--- obsidian.nvim only ships nvim-cmp sources (cmp_obsidian, cmp_obsidian_new,
--- cmp_obsidian_tags). nvim-cmp itself is installed just to provide the
--- `cmp` module/registry these sources plug into; blink.cmp (via
--- blink.compat, see plugins/blink-cmp.lua) is what actually renders
--- completions in the UI. `cmp.setup()` is intentionally never called.
-vim.pack.add({
-	"https://github.com/hrsh7th/nvim-cmp",
+	{ src = "https://github.com/obsidian-nvim/obsidian.nvim", version = vim.version.range("*") },
 })
 
 require("obsidian").setup({
+	legacy_commands = false, -- use `:Obsidian <subcommand>` only
+
 	workspaces = {
 		{
 			name = "Are Tobias Vault",
@@ -20,38 +17,26 @@ require("obsidian").setup({
 	},
 
 	notes_subdir = "notes",
+	new_notes_location = "notes_subdir",
+
 	daily_notes = {
 		folder = "Notes/Daily",
-		date_format = "%d-%m-%Y",
-		default_tags = { "daily-notes " },
+		date_format = "%d-%m-%Y", -- strftime format still supported
+		default_tags = { "daily-notes" },
 	},
 
 	completion = {
-		nvim_cmp = true,
 		min_chars = 2,
 	},
-	mappings = {
-		-- Overrides the 'gf' mapping to work on markdown/wiki links within your vault.
-		["<leader>gf"] = {
-			action = function()
-				return require("obsidian").util.gf_passthrough()
-			end,
-			opts = { noremap = false, expr = true, buffer = true },
-		},
-		-- Toggle check-boxes.
-		["<leader>ch"] = {
-			action = function()
-				return require("obsidian").util.toggle_checkbox()
-			end,
-			opts = { buffer = true },
-		},
-		-- Smart action depending on context, either follow link or toggle checkbox.
-		["<cr>"] = {
-			action = function()
-				return require("obsidian").util.smart_action()
-			end,
-			opts = { buffer = true, expr = true },
-		},
-	},
-	new_notes_location = "notes_subdir",
+})
+
+-- The fork sets <CR> (smart action: follow link / toggle checkbox / fold
+-- heading), ]o / [o (next/prev link) by default. The old custom mappings
+-- are re-created here as buffer-local keymaps on note buffers.
+vim.api.nvim_create_autocmd("User", {
+	pattern = "ObsidianNoteEnter",
+	callback = function(ev)
+		vim.keymap.set("n", "<leader>gf", "<Cmd>Obsidian follow_link<CR>", { buffer = ev.buf, desc = "Obsidian follow link" })
+		vim.keymap.set("n", "<leader>ch", "<Cmd>Obsidian toggle_checkbox<CR>", { buffer = ev.buf, desc = "Obsidian toggle checkbox" })
+	end,
 })

@@ -25,9 +25,7 @@ load("plugins.mini-sessions")
 -- Navigation
 --
 load("plugins.telescope")
-load("plugins.telescope-ui")
 --load("plugins.telescope-frecency")
-load("plugins.telescope-fzf-native")
 load("plugins.harpoon")
 
 load("plugins.colorscheme")
@@ -41,7 +39,6 @@ load("plugins.mason")
 load("plugins.schemastore")
 load("plugins.modicator")
 load("plugins.noice")
-load("plugins.ts-autotag")
 load("plugins.auto-tags")
 load("plugins.obsidian-nvim")
 load("plugins.render-markdown")
@@ -53,5 +50,4 @@ load("plugins.lazygit")
 -- LSP / Completion
 --
 load("plugins.blink-cmp")
-load("plugins.blink-rg")
 load("plugins.luasnip")

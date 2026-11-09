@@ -1,11 +1,20 @@
-vim.pack.add({ { src = "https://github.com/catppuccin/nvim", name = "catppuccin" } })
+-- vim.pack.add({ { src = "https://github.com/catppuccin/nvim", name = "catppuccin" } })
+--
+-- catppuccin = require("catppuccin").setup({
+-- 	flavour = "macchiato",
+-- 	transparent_background = true,
+-- 	float = {
+-- 		transparent = true,
+-- 	},
+-- 	term_colors = true,
+-- })
+-- vim.cmd("colorscheme catppuccin ")
 
-catppuccin = require("catppuccin").setup({
-	flavour = "macchiato",
-	transparent_background = true,
-	float = {
-		transparent = true,
+vim.pack.add({
+	{
+		src = "https://github.com/rose-pine/neovim",
+		name = "rose-pine",
 	},
-	term_colors = true,
 })
-vim.cmd("colorscheme catppuccin ")
+require("rose-pine").setup()
+vim.cmd("colorscheme rose-pine")

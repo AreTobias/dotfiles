@@ -1,63 +1,38 @@
 vim.pack.add({
+	"https://github.com/mason-org/mason.nvim",
 	"https://github.com/mason-org/mason-lspconfig.nvim",
-})
-
-vim.pack.add({
-	"https://github.com/williamboman/mason-lspconfig.nvim",
-})
-
-vim.pack.add({
 	"https://github.com/neovim/nvim-lspconfig",
 })
 
-vim.pack.add({
-	"https://github.com/mason-org/mason.nvim",
-})
+require("mason").setup({})
 
-local mason = require("mason")
-mason.setup({})
-
+-- LSP servers (lspconfig names). Which servers actually *run* is decided in
+-- config/lsp.lua via vim.lsp.enable(), so automatic_enable is off — that
+-- keeps one source of truth and stops stray installs (e.g. pylsp) from
+-- starting alongside pyright.
 require("mason-lspconfig").setup({
 	ensure_installed = {
-		"stylua",
 		"lua_ls",
 		"ts_ls",
 		"pyright",
-		-- "emmet-ls",
-		-- "emmet-language-server",
+		"bashls",
+		"yamlls",
+		"jsonls",
+		"html",
+		"cssls",
 	},
-	automat_installation = true,
+	automatic_enable = false,
 })
--- return {
---   {
---     "mason-org/mason-lspconfig.nvim",
---     opts = {},
---     dependencies = {
---       { "mason-org/mason.nvim", opts = {} },
---       "neovim/nvim-lspconfig",
---     },
---   },
---   {
---     'williamboman/mason-lspconfig.nvim',
---     config = function()
---       require("mason-lspconfig").setup({
---         ensure_installed = {
---           "lua_ls",
---           "ts_ls",
---           "pyright",
---         },
---         automat_installation = true
---
---       })
---     end,
---   },
---   -- {
---   --   "neovim/nvim-lspconfig",
---   --   config = function()
---   --     local lspconfig = require("lspconfig")
---   --     lspconfig.lua_ls.setup({})
---   --     lspconfig.ts_ls.setup({})
---   --     lspconfig.pyright.setup({})
---   --   end,
---   -- }
--- }
+
+-- Formatters/linters (Mason package names) used by conform.lua.
+-- mason-lspconfig only handles LSP servers, so install these directly.
+local tools = { "stylua", "ruff", "yamlfix" }
+local registry = require("mason-registry")
+registry.refresh(function()
+	for _, name in ipairs(tools) do
+		local ok, pkg = pcall(registry.get_package, name)
+		if ok and not pkg:is_installed() then
+			pkg:install()
+		end
+	end
+end)
