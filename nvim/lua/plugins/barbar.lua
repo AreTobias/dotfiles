@@ -2,9 +2,10 @@ vim.pack.add({
 	"https://github.com/romgrk/barbar.nvim",
 })
 
-local barbar = require("barbar").setup({})
-vim.keymap.set("n", "<TAB>", "<Cmd>BufferNext<CR>")
-vim.keymap.set("n", "<S-TAB>", "<Cmd>BufferPrevious<CR>")
-vim.keymap.set("n", "<leader>x", "<Cmd>BufferClose<CR>")
--- vim.keymap.set('n', 'C-h', "<Cmd>BufferMovePrevious<CR>"),
--- vim.keymap.set('n', 'C-l', "<Cmd>BufferMoveNext<CR>"),
+require("barbar").setup({})
+
+-- H/L instead of <Tab>/<S-Tab>: in most terminals <Tab> and <C-i> are the
+-- same key, so mapping <Tab> would take away jumplist-forward.
+vim.keymap.set("n", "L", "<Cmd>BufferNext<CR>", { desc = "Next buffer" })
+vim.keymap.set("n", "H", "<Cmd>BufferPrevious<CR>", { desc = "Previous buffer" })
+vim.keymap.set("n", "<leader>x", "<Cmd>BufferClose<CR>", { desc = "Close buffer" })

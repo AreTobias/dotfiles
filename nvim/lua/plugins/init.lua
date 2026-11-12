@@ -12,12 +12,12 @@ end
 --
 load("plugins.mini")
 load("plugins.tmux-navigator")
-load("plugins.mini-statusline") -- was: lualine.lua
-load("plugins.mini-starter") -- was: dashboard.lua, alpha-dashboard.lua
-load("plugins.mini-files") -- was: oil.lua, oil-gitstatus.lua, neo-tree.lua
-load("plugins.mini-splitjoin") -- was: treesj.lua
-load("plugins.mini-clue") -- was: whichkey.lua
-load("plugins.mini-diff") -- was: gitsigns.lua
+load("plugins.mini-statusline")
+load("plugins.mini-starter")
+load("plugins.mini-files")
+load("plugins.mini-splitjoin")
+load("plugins.mini-clue")
+load("plugins.mini-diff")
 load("plugins.mini-comment")
 load("plugins.mini-indentscope")
 load("plugins.mini-sessions")
@@ -25,7 +25,6 @@ load("plugins.mini-sessions")
 -- Navigation
 --
 load("plugins.telescope")
---load("plugins.telescope-frecency")
 load("plugins.harpoon")
 
 load("plugins.colorscheme")
@@ -50,4 +49,3 @@ load("plugins.lazygit")
 -- LSP / Completion
 --
 load("plugins.blink-cmp")
-load("plugins.luasnip")

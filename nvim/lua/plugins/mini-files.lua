@@ -3,7 +3,6 @@ vim.pack.add({
 })
 
 -- replaces oil.nvim, oil-git-status.nvim and neo-tree.nvim
--- (see lua/plugins/disabled/oil.lua, disabled/oil-gitstatus.lua, disabled/neo-tree.lua)
 local minifiles = require("mini.files")
 minifiles.setup()
 

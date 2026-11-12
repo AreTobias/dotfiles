@@ -20,6 +20,7 @@ require("mason-lspconfig").setup({
 		"jsonls",
 		"html",
 		"cssls",
+		"jinja_lsp",
 	},
 	automatic_enable = false,
 })

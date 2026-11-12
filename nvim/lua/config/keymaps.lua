@@ -1,7 +1,8 @@
 local map = vim.keymap.set
 
 -- Not mapped here on purpose:
---   <C-h/j/k/l>  tmux-navigator   <Tab>/<S-Tab>  barbar   n/N  nvim-hlslens
+--   <C-h/j/k/l>  tmux-navigator   H/L  barbar   n/N  nvim-hlslens
+--   <leader>1-4  harpoon slots
 -- Built in since 0.11: grn rename, gra code action, grr references,
 -- gri implementation, gO symbols, K hover, ]d/[d next/prev diagnostic.
 

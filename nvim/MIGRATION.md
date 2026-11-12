@@ -1,228 +1,58 @@
-# 2026-09-14 plugin cleanup + conservative mini.nvim migration
+# Config notes
 
-This documents every change made, why, and exactly how to revert each one
-independently. Nothing was deleted — everything superseded was moved to
-`lua/plugins/disabled/` instead, so reverting is always "move the file back +
-edit two lines in init.lua".
+Neovim 0.12, plugins managed with the built-in `vim.pack`. This file records
+the decisions that are still in effect; superseded history has been removed.
 
-## 1. Loader made resilient (`lua/plugins/init.lua`)
+Backup of the config as of 2026-11-12 (taken after that day's edits, and still
+containing `lua/plugins/disabled/`): `~/.config/nvim-backup-2026-11-12.tar.gz`.
 
-Previously every plugin file was loaded with a bare `require("plugins.x")`.
-Because `obsidian-nvim.lua` throws a hard error at startup (see #6 below),
-**every plugin listed after it in the file silently failed to load** —
-render-markdown, markdown-preview, tabbout, tiny-code-action, blink-cmp,
-blink-rg and luasnip were all dead despite being "required". This is very
-likely why several plugins felt "not included" in the first place.
+## Layout
 
-`init.lua` now defines a small `load(name)` helper that wraps `require` in
-`pcall` and reports failures via `vim.notify` instead of aborting the rest
-of the chain.
+- `init.lua` sets the leader, then loads `lua/config/` and `lua/plugins/`.
+- `lua/plugins/init.lua` loads one file per plugin through a `pcall` wrapper,
+  so one failing plugin reports an error instead of stopping the rest.
+- `lua/config/lsp.lua` is the only place that decides which LSP servers run
+  (`vim.lsp.enable`). Mason only installs them (`automatic_enable = false`).
+- `lsp/*.lua` holds per-server overrides merged over nvim-lspconfig's defaults.
 
-**To revert:** replace every `load("plugins.x")` call back with
-`require("plugins.x")` and delete the `load` function at the top of the
-file.
+## mini.nvim replacements (2026-09-14)
 
-## 2. Plugins that existed but were never loaded — now added
-
-These files existed on disk with real config in them but had no
-`require`/`load` line in `lua/plugins/init.lua`, so they never ran:
-
-| File | Notes |
-|---|---|
-| `treesitter.lua` | Was completely inactive. Also had a syntax error, `andvim.api.nvim_create_autocmd(...)` (missing space after `and`) — fixed to `vim.api.nvim_create_autocmd(...)`. |
-| `tabbout.lua` | Tab-to-exit-bracket-pairs plugin, unrelated to autopairs. |
-| `tiny-ca.lua` | tiny-code-action.nvim, `<leader>ca` code actions. |
-| `luasnip.lua` | Kept since completion (blink.cmp) was left untouched. |
-
-**To revert:** remove the corresponding `load("plugins.x")` line from
-`init.lua`. For treesitter, the syntax fix is a real bug fix independent of
-this migration — only revert it if you want treesitter broken again.
-
-## 3. Dead/duplicate files retired (not part of the mini.nvim swap)
-
-| File | Why removed from load path |
-|---|---|
-| `nvim-lspconfig.lua` | Pure duplicate — `mason.lua` already does `vim.pack.add` for `neovim/nvim-lspconfig`, and `schemastore.lua` already calls `require("lspconfig")`. This file added nothing. |
-| `mason-lspconfig.lua` | Had a syntax error (`)}` instead of `})`) so it could never have run anyway, and duplicated the `mason-lspconfig.nvim` setup that `mason.lua` already does. |
-
-Moved to `lua/plugins/disabled/`, not required anywhere.
-
-**To revert:** move the file back to `lua/plugins/` and add
-`load("plugins.<name>")` back to `init.lua`. Note `mason-lspconfig.lua`
-still has its original syntax error — fix the `)}` on line 3 to `})` first.
-
-## 4. Also fixed: `blink-rg.lua`
-
-The git URL had a trailing slash (`.../blink-ripgrep.nvim/`), which made
-`vim.pack.add` fail with `spec.name: expected non-empty string`. Removed the
-trailing slash.
-
-**To revert:** add the trailing slash back (not recommended, it's just a
-bug).
-
-## 5. Conservative mini.nvim swap
-
-Per your choice, only the "safe"/near-equivalent swaps were made. Telescope
-and blink.cmp/luasnip were deliberately left alone (mini.pick and
-mini.completion are meaningfully less capable, per our earlier discussion —
-ask me if you later want to revisit that).
-
-Each swap is its own new file, and the old plugin's file was moved to
-`lua/plugins/disabled/` rather than deleted, so you can A/B test and revert
-any single one independently.
-
-| Old (now in `disabled/`) | New file | mini module | Notes / feature gaps |
-|---|---|---|---|
-| `lualine.lua` | `mini-statusline.lua` | `mini.statusline` | Close to 1:1. |
-| `dashboard.lua` + `alpha-dashboard.lua` | `mini-starter.lua` | `mini.starter` | Both old dashboards replaced by one. Default mini.starter look is plainer; customize `require("mini.starter").setup({...})` if you want the hyper/startify look back. |
-| `oil.lua` + `oil-gitstatus.lua` + `neo-tree.lua` | `mini-files.lua` | `mini.files` | `<leader>e` keymap preserved (opens at current file). `neo-tree.lua` was unused/broken anyway (written in lazy.nvim `return {}` format, incompatible with `vim.pack`). |
-| `treesj.lua` | `mini-splitjoin.lua` | `mini.splitjoin` | `<leader>m` toggle keymap preserved. |
-| `whichkey.lua` | `mini-clue.lua` | `mini.clue` | Behavior differs: which-key's `<leader>?` was a manual popup; mini.clue auto-shows a popup ~300ms after you press a trigger key (`<leader>`, `g`, `z`, marks, registers, windows, etc.) and there's no direct manual-trigger equivalent, so the `<leader>?` keymap was dropped. |
-| `gitsigns.lua` | `mini-diff.lua` | `mini.diff` | Diff signs (add/change/delete) are equivalent. **Feature loss:** gitsigns' `current_line_blame` has no mini.diff equivalent — if you use that, keep gitsigns instead. |
-| — | (existing `mini.lua`, now actually loaded) | `mini.ai`, `mini.pairs`, `mini.surround`, `mini.icons`, `mini.jump` | This file already existed with correct config but was never `require`d — now it is. `mini.pairs` replaces `autoclose.nvim` + `nvim-autopairs` (both moved to `disabled/`), `mini.icons` replaces `nvim-web-devicons` (moved to `disabled/`). |
-
-**To revert any one swap:**
-1. Move the old file from `lua/plugins/disabled/` back to `lua/plugins/`.
-2. In `lua/plugins/init.lua`, remove the corresponding `load("plugins.mini-x")` line and add `load("plugins.<old-name>")` back in its place.
-3. If it's one of the mini core modules (pairs/icons), also comment out that specific `require("mini.x").setup()` line inside `lua/plugins/mini.lua` so you don't get both systems fighting over the same behavior (e.g. two autopairs plugins).
-
-## 6. `obsidian-nvim.lua` — fixed (pre-existing, unrelated to the mini.nvim work)
-
-Two bugs, both now fixed:
-
-- The configured workspaces pointed at `~/vaults/Work` and
-  `~/vaults/Development`, which don't exist. Replaced with your real vault:
-  a single workspace named "Are Tobias Vault" at
-  `~/Documents/Obsidian/Are Tobias Vault`. Also fixed a `notes_dubdir` typo
-  (should be `notes_subdir`, the option obsidian.nvim actually reads).
-- `completion.nvim_cmp = true` was leftover from before this config switched
-  to blink.cmp — `cmp` isn't installed, so obsidian.nvim crashed trying to
-  register an nvim-cmp source. This obsidian.nvim version has no blink.cmp
-  integration at all, so it's set to `nvim_cmp = false`; obsidian's own
-  completions (wiki-links, tags) just aren't wired into blink.cmp.
-
-**To revert:** restore the two `~/vaults/...` workspace entries and
-`nvim_cmp = true` in `lua/plugins/obsidian-nvim.lua` (not recommended, both
-were broken).
-
-Thanks to the loader fix in #1, none of this could break any other plugin
-regardless.
-
-## 8. Obsidian completion wired into blink.cmp
-
-This installed obsidian.nvim (`epwalsh/obsidian.nvim`, the old architecture —
-not the newer `obsidian-nvim/obsidian.nvim` fork, which gets completion via
-an in-process LSP instead) only ships **nvim-cmp** sources
-(`cmp_obsidian`, `cmp_obsidian_new`, `cmp_obsidian_tags`). blink.cmp can't
-consume those directly, so:
-
-- `plugins/obsidian-nvim.lua` now also `vim.pack.add`s `hrsh7th/nvim-cmp`
-  (only for its `cmp` module/source registry — `cmp.setup()` is never
-  called, so it never renders its own completion UI) and
-  `completion.nvim_cmp = true` makes obsidian call
-  `cmp.register_source(...)` for those three sources at startup.
-- `plugins/blink-cmp.lua` now also `vim.pack.add`s `saghen/blink.compat`
-  (a shim that lets blink.cmp read nvim-cmp sources) and adds
-  `obsidian`/`obsidian_new`/`obsidian_tags` as `blink.compat.source`
-  providers, enabled only for `markdown` filetype in `sources.per_filetype`.
-
-Verified: `require('cmp').core.sources` shows all three obsidian sources
-registered, and blink.cmp's resolved config shows them in
-`sources.per_filetype.markdown`. Note the upstream blink.compat docs warn
-triggering behavior can differ slightly from nvim-cmp's, and blink.cmp API
-changes have occasionally broken this compat shim — pin versions if you hit
-issues.
-
-**To revert:** in `obsidian-nvim.lua`, drop the `nvim-cmp` `vim.pack.add`
-block and set `nvim_cmp = false`. In `blink-cmp.lua`, drop the
-`blink.compat` `vim.pack.add` block and revert `sources` back to:
-
-```lua
-sources = {
-	default = { "lsp", "path", "snippets", "buffer" },
-	per_filetype = {
-		markdown = { "lsp", "path", "buffer" },
-	},
-},
-```
-
-## 7. Left disabled on purpose (unchanged from before)
-
-- `barbar.lua` — was already commented out in `init.lua`. mini.nvim does have
-  a bufferline equivalent (`mini.tabline`) but you hadn't confirmed you
-  wanted a bufferline enabled, so it's untouched. Say the word if you want
-  it wired up as `mini-tabline.lua`.
-  **Update 2026-09-23:** re-enabled — `load("plugins.barbar")` uncommented
-  in `init.lua`. The per-file-tab workflow it provided (`<TAB>`/`<S-TAB>` to
-  cycle buffers, `<leader>x` to close) was being missed. `mini.tabline` was
-  considered but not used, to avoid re-tuning keymaps/behavior from scratch.
-  **To revert:** re-comment the `load("plugins.barbar")` line.
-- `telescope-frecency.lua` — was already commented out; left as-is since the
-  full Telescope stack was kept.
-
-## 9. New workflow additions (2026-09-14, later same day)
-
-Four new plugin files, all net-new capability (nothing replaced):
-
-| File | What | Keymap(s) |
+| Replaced | By | Note |
 |---|---|---|
-| `mini-comment.lua` | `mini.comment` — there was no commenting plugin at all before this. | `gcc` (line), `gc{motion}`, `gc` (visual) |
-| `mini-indentscope.lua` | `mini.indentscope` — visualizes the current indent scope. | none (visual only) |
-| `mini-sessions.lua` | `mini.sessions` — save/load/delete a per-directory session (`Session.vim`). `autoread`/`autowrite` are deliberately left `false` so it can't silently load a session over the mini.starter dashboard on a bare `nvim`. | `<leader>ss` save, `<leader>sl` load (picker), `<leader>sd` delete (picker) |
-| `lazygit.lua` | `kdheepak/lazygit.nvim` — floating LazyGit TUI, using the already-installed plenary.nvim for the border. | `<leader>gg` |
+| lualine | `mini.statusline` | |
+| dashboard-nvim, alpha-nvim | `mini.starter` | customised header, footer and actions |
+| oil, oil-git-status, neo-tree | `mini.files` | `<leader>e`; `<CR>` and `-` added |
+| treesj | `mini.splitjoin` | `<leader>m` |
+| which-key | `mini.clue` | popup after 300 ms, no manual trigger |
+| gitsigns | `mini.diff` | no current-line blame |
+| autoclose, nvim-autopairs | `mini.pairs` | |
+| nvim-web-devicons | `mini.icons` | mocks devicons for barbar |
 
-**To revert any one:** remove its `load("plugins.x")` line from
-`lua/plugins/init.lua` and delete the file (these are pure additions, so
-there's no old file in `disabled/` to restore).
+Telescope and blink.cmp were kept on purpose (mini.pick and mini.completion are
+less capable). barbar was kept over `mini.tabline`.
 
-## 10. Config audit fixes (2026-11-09)
+## Other standing decisions
 
-Full pre-change backup: `/tmp/claude-1000/-home-are--config-nvim/5d653237-b464-491b-8adf-5af0e9ffe06c/scratchpad/nvim-backup`
-(temporary location — copy it somewhere permanent if you want to keep it).
+- TypeScript uses `ts_ls`. Servers not installed yet are listed commented in
+  `config/lsp.lua` with their `:MasonInstall` names. Extra servers can be
+  enabled per machine with `vim.g.lsp_on_demands`.
+- Python formatting is `ruff_organize_imports` + `ruff_format`.
+- obsidian.nvim is the maintained `obsidian-nvim` fork. Its completion comes
+  through its in-process LSP, so blink.cmp needs no compat shim.
+- Snippets are served by blink.cmp's built-in engine with friendly-snippets.
+  LuaSnip was removed from the load list on 2026-11-12 because blink was never
+  configured to use it.
+- mini.sessions has `autoread`/`autowrite` off so it cannot load a session over
+  the starter screen.
 
-| Change | Files |
+## 2026-11-12 changes
+
+| Change | File |
 |---|---|
-| TypeScript server: `vtsls` (not installed) → `ts_ls`. Server list trimmed to what's installed; gopls/rust_analyzer/zls/helm_ls/tailwindcss/biome left commented with their `:MasonInstall` names; eslint stays on-demand via `vim.g.lsp_on_demands`. Added bashls, jinja_lsp. | `config/lsp.lua` |
-| mason-lspconfig: removed duplicate repo entry, fixed `automat_installation` typo, removed `stylua` from LSP list, `automatic_enable = false` (config/lsp.lua is the single source of truth — stops pylsp starting next to pyright). stylua/ruff/yamlfix installed via mason-registry. | `plugins/mason.lua` |
-| `<leader>ca` was defined buffer-locally in LspAttach, shadowing tiny-code-action. Removed the LSP one. | `config/lsp.lua` |
-| Inlay hints: dropped the global `enable(false)` in init.lua (it was overridden on every LspAttach anyway). Added `<leader>th` toggle. | `init.lua`, `config/lsp.lua` |
-| telescope: merged telescope-ui + fzf-native into one setup (two `setup()` calls were overwriting each other), fzf extension now loaded, `make` runs via `PackChanged` hook. | `plugins/telescope.lua` (removed `telescope-ui.lua`, `telescope-fzf-native.lua`) |
-| markdown-preview: binary installed; `PackChanged` hook re-installs on update. | `plugins/markdown-preview.lua` |
-| Python formatting: isort+black → `ruff_organize_imports` + `ruff_format`. | `plugins/conform.lua` |
-| Treesitter: 6 → 20 parsers (all LSP languages + html/tsx/js for autotag). | `plugins/treesitter.lua` |
-| obsidian.nvim: archived `epwalsh` → maintained `obsidian-nvim` fork (v3.16). Completion via its built-in LSP, so nvim-cmp and blink.compat removed. `<CR>`/`]o`/`[o` are fork defaults; `<leader>gf`/`<leader>ch` re-created on `ObsidianNoteEnter`. | `plugins/obsidian-nvim.lua`, `plugins/blink-cmp.lua` |
-| blink-ripgrep wired up as a real source (was installed but unconfigured). | `plugins/blink-cmp.lua` (removed `blink-rg.lua`) |
-| Removed duplicate autotag plugin `tronikelis/ts-autotag.nvim` (kept `windwp/nvim-ts-autotag`). | removed `ts-autotag.lua` |
-| Cruft: deleted `lazy-lock.json`, `config/lazy.lua`, commented lazy specs, noice's nvim-cmp override. | various |
-
-## 11. Baseline options, keymaps, autocmds (2026-11-09)
-
-- `config/options.lua`: undofile, confirm, ignorecase/smartcase, inccommand,
-  signcolumn, cursorline (needed by modicator), scrolloff, showmode off,
-  splitright/below, linebreak, listchars, winborder, mouse, updatetime,
-  timeoutlen=300, clipboard=unnamedplus, `vim.diagnostic.config` (inline
-  virtual text, severity sort). Dropped duplicate mapleader + termguicolors.
-- `config/keymaps.lua` (new): `<leader>d` / `<leader>q` diagnostics, visual
-  `J`/`K` move lines, `<`/`>` keep selection, wrapped-line `j`/`k`,
-  centered `<C-d>`/`<C-u>`, `<leader>p` paste-keep-register, `<Esc><Esc>`
-  leaves terminal, `<leader>fr`/`fs`/`fd` Telescope LSP pickers.
-- `config/autocmd.lua` (new, now required from `config/init.lua`): yank
-  highlight, restore cursor position, checktime on focus, equalize splits on
-  resize, `q` closes help/qf/etc., auto-mkdir on save, spell+wrap for
-  markdown/gitcommit/text.
-- `plugins/mini-starter.lua`: removed leftover *global* `j`→`<C-n>`,
-  `k`→`<C-p>` maps (they'd override the wrapped-line j/k). The buffer-local
-  starter j/k via `MiniStarterOpened` are unchanged.
-
-**To revert:** restore the three `config/*.lua` files from the backup noted
-in section 10, and remove `require("config.autocmd")` from `config/init.lua`.
-
-## 2026-11-09 mini.starter customised (`lua/plugins/mini-starter.lua`)
-
-Added ASCII header + time-of-day greeting, footer (cwd, nvim version, plugin
-count, date), sections for mini.sessions / recent files in cwd / actions
-(Telescope pickers, mini.files, LazyGit, config, `vim.pack.update()`), centred
-layout, numeric indexes and colorscheme-linked highlights. j/k navigation kept.
-
-**To revert:** reduce the `setup()` call back to just `query_updaters` and
-delete the header/footer/items/highlight code.
+| Harpoon slots moved from `<C-h>/<C-t>/<C-n>/<C-s>` to `<leader>1`–`4`. `<C-h>` was overwriting tmux-navigator's "focus left". | `plugins/harpoon.lua` |
+| Buffer cycling moved from `<Tab>/<S-Tab>` to `L`/`H`, so `<C-i>` (same key as `<Tab>` in most terminals) is jumplist-forward again. | `plugins/barbar.lua` |
+| `desc` added to harpoon, barbar and code-action maps; group labels for `<leader>c/f/g/s/t`. | `plugins/mini-clue.lua` and others |
+| `lua_ls` loads the Neovim runtime and luv types instead of only whitelisting the `vim` global. | `lsp/lua_ls.lua` |
+| Format on save: timeout 500 → 2000 ms, `<leader>tf` toggles it (`vim.g.disable_autoformat`). | `plugins/conform.lua` |
+| `jinja_lsp` added to Mason's `ensure_installed`. | `plugins/mason.lua` |
+| LuaSnip and telescope-frecency no longer loaded; commented catppuccin block removed. | `plugins/init.lua`, `plugins/colorscheme.lua` |

@@ -3,7 +3,6 @@ vim.pack.add({
 })
 
 -- replaces dashboard-nvim and alpha-nvim
--- (see lua/plugins/disabled/dashboard.lua and lua/plugins/disabled/alpha-dashboard.lua)
 local starter = require("mini.starter")
 
 -- Header -------------------------------------------------------------------

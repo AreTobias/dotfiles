@@ -3,7 +3,11 @@ return {
 	settings = {
 		Lua = {
 			runtime = { version = "LuaJIT" }, -- Neovim uses LuaJIT
-			diagnostics = { globals = { "vim" } }, -- Recognize 'vim' global
+			workspace = {
+				checkThirdParty = false,
+				-- Neovim runtime (vim.api, vim.lsp, ...) and vim.uv types
+				library = { vim.env.VIMRUNTIME, "${3rd}/luv/library" },
+			},
 		},
 	},
 }
